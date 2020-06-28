@@ -86,9 +86,6 @@ uintptr_t GetDAMAddr(attach_result* Attach, char* ModuleName, uint32 ModuleOffse
 	GetModuleBaseAddress(Attach->ProcID, ModuleName);
 	uintptr_t DynPtrBaseAddr = ModuleBaseAddr + ModuleOffset;
 	
-	uintptr_t Result = FindDAMAddr(Attach->Process, 
-									 DynPtrBaseAddr, 
-									 AddrOffet, 
-									 AddrOffetCount);
+	uintptr_t Result = FindDAMAddr(Attach->Process, DynPtrBaseAddr, AddrOffet, AddrOffetCount);
 	return Result;
 }

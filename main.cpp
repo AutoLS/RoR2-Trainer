@@ -8,10 +8,7 @@
 #if DEBUG_MODE
 int wmain()
 #else
-int WinMain(HINSTANCE hInstance,
-			HINSTANCE hPrevInstance,
-			LPSTR     lpCmdLine,
-			int       nShowCmd)
+int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 #endif
 {	
 	char* ProcessName = "Risk of Rain 2.exe";

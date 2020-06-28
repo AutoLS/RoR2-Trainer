@@ -5,17 +5,6 @@
 #include "proc.cpp"
 #include "UI.cpp"
 
-enum cheat_toggles
-{
-	UNLIMITED_JUMPS,
-	TOGGLES_MAX,
-};
-
-bool Toggles[TOGGLES_MAX] = {};
-
-void fflush_stdin()
-{ int c; while ((c = getchar()) != '\n' && c != EOF); }
-
 bool ContainsAllNumbers(char* str)
 {
 	bool Result = false;

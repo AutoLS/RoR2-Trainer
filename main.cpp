@@ -5,17 +5,6 @@
 #include "proc.cpp"
 #include "UI.cpp"
 
-bool ContainsAllNumbers(char* str)
-{
-	bool Result = false;
-	int Count = (int)strlen(str);
-	for(int i = 0; i < Count; ++i)
-	{
-		Result = str[i] >= 48 && str[i] <= 57;
-	}
-	return Result;
-}
-
 #if DEBUG_MODE
 int wmain()
 #else

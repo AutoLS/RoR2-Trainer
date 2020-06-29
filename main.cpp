@@ -5,10 +5,27 @@
 #include "proc.cpp"
 #include "UI.cpp"
 
+enum cheat_buttons
+{
+	CHEAT_BUTTON_GOLD,
+	CHEAT_BUTTON_EXP,
+	CHEAT_BUTTON_MAX,
+};
+
+enum cheat_checkbox
+{
+	CHECKBOX_UNLIMITED_JUMPS,
+	CHECKBOX_GOD_MODE,
+	CHECKBOX_MAX,
+};
+
 #if DEBUG_MODE
 int wmain()
 #else
-int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
+int WinMain(HINSTANCE hInstance,
+			HINSTANCE hPrevInstance,
+			LPSTR     lpCmdLine,
+			int       nShowCmd)
 #endif
 {	
 	char* ProcessName = "Risk of Rain 2.exe";
@@ -28,7 +45,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 	uint64 LastCount = SDL_GetPerformanceCounter();
 	real32 t = 0;
 	
-	uint32 GoldValue = 0;
+	uint32 CheatValue[CHEAT_BUTTON_MAX] = {};
 	
 	TTF_Font* ButtonFont = TTF_OpenFont("ast/LibreBaskerville-Regular.ttf", 12);
 	TTF_Font* LabelsFont = TTF_OpenFont("ast/LibreBaskerville-Regular.ttf", 20);
@@ -40,27 +57,41 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 	
 	image_data* UITextures = LoadUITextures(Graphics.Renderer);
 	
-	v2 GoldPos = V2(100, 50);
-	button GoldButton = CreateButton(GoldPos, V2(50, 50), UITextures[0], UITextures[1], Graphics.Renderer, ButtonFont, "+10k");
-	label GoldLabel = CreateLabel(V2(10, GoldPos.y+25-LabelH*0.5f), "Gold", LabelsFont, {255, 255, 255, 255}, Graphics.Renderer);
-					
-	v2 ULJPos = GoldPos + V2(100, 60);
-	checkbox UnlimitedJumpsCB = CreateCheckbox(ULJPos, V2(38, 36), UITextures[2], UITextures[3]);
-											   
-	label UnlimitedJumpsLabel = CreateLabel(V2(10, ULJPos.y+18-LabelH*0.5f), "Unlimited Jumps", LabelsFont, {255, 255, 255, 255}, Graphics.Renderer);
-											
-	v2 GodModePos = ULJPos + V2(0, 60);
-	checkbox GodModeCB = CreateCheckbox(GodModePos, V2(38, 36), UITextures[2], UITextures[3]);
-											   
-	label GodModeLabel = CreateLabel(V2(10, GodModePos.y+18-LabelH*0.5f), "God mode", LabelsFont, {255, 255, 255, 255}, Graphics.Renderer);
+	char* ButtonLabelsName[] = 
+	{
+		"Gold",
+		"EXP"
+	};
+	
+	char* CheckboxLabelNames[] = 
+	{
+		"Unlimited Jumps",
+		"God Mode"
+	};
+	
+	button CheatButtons[CHEAT_BUTTON_MAX] = {};
+	label ButtonLabels[CHEAT_BUTTON_MAX] = {};
+	for(int i = 0; i < CHEAT_BUTTON_MAX; ++i)
+	{
+		CheatButtons[i] = CreateButton(V2(100, 50 + (i*60.0f)), V2(50, 50), UITextures[0], UITextures[1], Graphics.Renderer, ButtonFont, "+10k");
+		ButtonLabels[i] = CreateLabel(V2(10, CheatButtons[i].Pos.y+25-LabelH*0.5f), ButtonLabelsName[i], LabelsFont, {255, 255, 255, 255}, Graphics.Renderer);
+	}
+	
+	checkbox CheatCB[CHECKBOX_MAX] = {};
+	label CheckboxLabels[CHECKBOX_MAX] = {};
+	for(int i = 0; i < CHECKBOX_MAX; ++i)
+	{
+		CheatCB[i] = CreateCheckbox(V2(200, 230 + (i*60.0f)), V2(38, 36), UITextures[2], UITextures[3]);
+		CheckboxLabels[i] = CreateLabel(V2(10, CheatCB[i].Rect.Pos.y+18-LabelH*0.5f), CheckboxLabelNames[i], LabelsFont, {255, 255, 255, 255}, Graphics.Renderer);
+	}
 							
-	timer AttachProcessTimer = CreateTimer(2.0f);
+	timer AttachProcessTimer = CreateTimer(5.0f);
 	
 	bool Running = true;
 	
 	while(Running)
 	{
-		image_data GoldValueText = {};
+		image_data ValueText[CHEAT_BUTTON_MAX] = {};
 		
 		ProcessTimer(&AttachProcessTimer, t);
 		if(AttachProcessTimer.Complete)
@@ -89,9 +120,8 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 			t -= dt;
 		}
 		
-		HandleButton(&GoldButton, &Input);
-		HandleCheckbox(&UnlimitedJumpsCB, &Input);
-		HandleCheckbox(&GodModeCB, &Input);
+		HandleButtons(CheatButtons, &Input, CHEAT_BUTTON_MAX);
+		HandleCheckboxes(CheatCB, &Input, CHECKBOX_MAX);
 		
 		if(Attach.Status == ATTACH_SUCCEED)
 		{
@@ -100,29 +130,46 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 
 			uintptr_t GoldAddr = GetDAMAddr(&Attach, ModuleName, GoldModuleOffset, GoldAddrOffset, ArraySize(GoldAddrOffset));
 											 
-			if(ReadProcessMemory(Attach.Process, (void*)GoldAddr, &GoldValue, sizeof(GoldValue), 0))
+			if(ReadProcessMemory(Attach.Process, (void*)GoldAddr, &CheatValue[CHEAT_BUTTON_GOLD], sizeof(CheatValue[CHEAT_BUTTON_GOLD]), 0))
 			{
-				if(GoldButton.State == BUTTON_STATE_L_CLICK)
+				if(CheatButtons[CHEAT_BUTTON_GOLD].State == BUTTON_STATE_L_CLICK)
 				{						 
-					GoldValue += 10000;
-					WriteProcessMemory(Attach.Process, (void*)GoldAddr, &GoldValue, sizeof(GoldValue), 0);
+					CheatValue[CHEAT_BUTTON_GOLD] += 10000;
+					WriteProcessMemory(Attach.Process, (void*)GoldAddr, &CheatValue[CHEAT_BUTTON_GOLD], sizeof(CheatValue[CHEAT_BUTTON_GOLD]), 0);
 				}
-			}		
+			}
+			
+			uint32 EXPAddrOffset[] = {0x10, 0x600, 0x558, 0x30, 0x28};
+			uint32 EXPModuleOffset = 0x491DC8;
+			
+			uintptr_t EXPAddr = GetDAMAddr(&Attach, "mono-2.0-bdwgc.dll", EXPModuleOffset, EXPAddrOffset, ArraySize(EXPAddrOffset));
+			
+			if(ReadProcessMemory(Attach.Process, (void*)EXPAddr, &CheatValue[CHEAT_BUTTON_EXP], sizeof(CheatValue[CHEAT_BUTTON_EXP]), 0))
+			{
+				if(CheatButtons[CHEAT_BUTTON_EXP].State == BUTTON_STATE_L_CLICK)
+				{						 
+					CheatValue[CHEAT_BUTTON_EXP] += 10000;
+					WriteProcessMemory(Attach.Process, (void*)EXPAddr, &CheatValue[CHEAT_BUTTON_EXP], sizeof(CheatValue[CHEAT_BUTTON_EXP]), 0);
+				}
+			}
 		}
 		
-		char Buffer[100] = {};
-		sprintf(Buffer, "%d", GoldValue);
-		LoadText(Graphics.Renderer, LabelsFont, &GoldValueText, Buffer, {255, 0, 0, 255});
-				 
-		rect32 TextRect = GoldLabel.Rect;
-		TextRect.Pos += V2(150, 0);
-		TextRect.Dim = V2(GoldValueText.Dim);
-		
-		GoldValueText.Rect = SetRectRounded(TextRect);
+		for(int i = 0; i < CHEAT_BUTTON_MAX; ++i)
+		{
+			char Buffer[100] = {};
+			sprintf(Buffer, "%d", CheatValue[i]);
+			LoadText(Graphics.Renderer, LabelsFont, &ValueText[i], Buffer, {255, 0, 0, 255});
+					 
+			rect32 TextRect = ButtonLabels[i].Rect;
+			TextRect.Pos += V2(160, 0);
+			TextRect.Dim = V2(ValueText[i].Dim);
+			
+			ValueText[i].Rect = SetRectRounded(TextRect);
+		}
 		
 		if(Attach.Status == ATTACH_SUCCEED)
 		{
-			if(UnlimitedJumpsCB.Active)
+			if(CheatCB[CHECKBOX_UNLIMITED_JUMPS].Active)
 			{
 				uint32 JumpModuleOffset = 0x01532288;
 				uint32 JumpAddrOffset[] = 
@@ -137,7 +184,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 				//printf("JumpAddr: %llx, Value: %d\n", JumpAddr, Value);
 			}
 			
-			if(GodModeCB.Active)
+			if(CheatCB[CHECKBOX_GOD_MODE].Active)
 			{
 				uint32 ModuleOffset = 0x00491DE8;
 				uint32 AddrOffset[] = {0x490, 0x1B8, 0x60, 0x60, 0x68, 0xA8, 0x68};
@@ -168,14 +215,18 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 		
 		//Render
 		Attach.Status ? RenderLabel(&StatusLabelSucceed, Graphics.Renderer) : RenderLabel(&StatusLabelFailed, Graphics.Renderer);
-		RenderButton(&GoldButton, Graphics.Renderer);
-		RenderLabel(&GoldLabel, Graphics.Renderer);
-		RenderCheckbox(&UnlimitedJumpsCB, Graphics.Renderer);
-		RenderCheckbox(&GodModeCB, Graphics.Renderer);
-		RenderLabel(&UnlimitedJumpsLabel, Graphics.Renderer);
-		RenderLabel(&GodModeLabel, Graphics.Renderer);
-		SDL_RenderCopy(Graphics.Renderer, GoldValueText.Texture, 0, &GoldValueText.Rect);
-		SDL_DestroyTexture(GoldValueText.Texture);
+		
+		RenderButtons(CheatButtons, Graphics.Renderer, CHEAT_BUTTON_MAX);
+		RenderCheckboxes(CheatCB, Graphics.Renderer, CHECKBOX_MAX);
+		RenderLabels(ButtonLabels, Graphics.Renderer, CHEAT_BUTTON_MAX);
+		RenderLabels(CheckboxLabels, Graphics.Renderer, CHECKBOX_MAX);
+		
+		for(int i = 0; i < CHEAT_BUTTON_MAX; ++i)
+		{
+			SDL_RenderCopy(Graphics.Renderer, ValueText[i].Texture, 0, &ValueText[i].Rect);
+			SDL_DestroyTexture(ValueText[i].Texture);
+		}
+		
 		SDL_RenderPresent(Graphics.Renderer);
 		
 		real32 ElapsedTime = Win32GetSecondElapsed(LastCount, EndCount);

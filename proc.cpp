@@ -67,7 +67,8 @@ uintptr_t GetModuleBaseAddress(DWORD ProcID, const char* ModuleName)
 	return ModuleBaseAddress;
 }
 
-uintptr_t FindDAMAddr(HANDLE Process, uintptr_t BaseAddr, uint32* Offset, int OffsetCount)
+uintptr_t FindDAMAddr(HANDLE Process, uintptr_t BaseAddr, 
+					uint32* Offset, int OffsetCount)
 {
 	uintptr_t Result = BaseAddr;
 	for(int i = 0; i < OffsetCount; ++i)
@@ -78,12 +79,16 @@ uintptr_t FindDAMAddr(HANDLE Process, uintptr_t BaseAddr, uint32* Offset, int Of
 	return Result;
 }
 
-uintptr_t GetDAMAddr(attach_result* Attach, char* ModuleName, uint32 ModuleOffset, uint32* AddrOffet, int AddrOffetCount)
+uintptr_t GetDAMAddr(attach_result* Attach, char* ModuleName, uint32 ModuleOffset, 
+					 uint32* AddrOffet, int AddrOffetCount)
 {
 	uintptr_t ModuleBaseAddr = 
 	GetModuleBaseAddress(Attach->ProcID, ModuleName);
 	uintptr_t DynPtrBaseAddr = ModuleBaseAddr + ModuleOffset;
 	
-	uintptr_t Result = FindDAMAddr(Attach->Process, DynPtrBaseAddr, AddrOffet, AddrOffetCount);
+	uintptr_t Result = FindDAMAddr(Attach->Process, 
+									 DynPtrBaseAddr, 
+									 AddrOffet, 
+									 AddrOffetCount);
 	return Result;
 }

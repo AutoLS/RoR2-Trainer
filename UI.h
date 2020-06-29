@@ -25,6 +25,9 @@ struct button
 	
 	image_data Text;
 	
+	v2 Pos;
+	v2 Dim;
+	
 	rect32 Rect;
 	rect32 TextRect;
 	

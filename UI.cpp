@@ -4,23 +4,33 @@ image_data* LoadUITextures(SDL_Renderer* Renderer)
 {
 	image_data* UITextures = (image_data*)malloc(sizeof(image_data)*UI_TEXTURE_CHECKBOX_MAX);
 	
-	LoadTexture(&UITextures[UI_TEXTURE_BLUE_BUTTON], "ast/blue_button06.png", Renderer, 255);
-	LoadTexture(&UITextures[UI_TEXTURE_BLUE_BUTTON_ACTIVE], "ast/blue_button10.png", Renderer, 255);
-	LoadTexture(&UITextures[UI_TEXTURE_CHECKBOX], "ast/grey_box.png", Renderer, 255);
-	LoadTexture(&UITextures[UI_TEXTURE_CHECKBOX_ACTIVE], "ast/blue_boxCheckmark.png", Renderer, 255);
+	LoadTexture(&UITextures[UI_TEXTURE_BLUE_BUTTON], "ast/blue_button06.png", 
+				Renderer, 255);
+	LoadTexture(&UITextures[UI_TEXTURE_BLUE_BUTTON_ACTIVE], "ast/blue_button10.png", 
+				Renderer, 255);
+	LoadTexture(&UITextures[UI_TEXTURE_CHECKBOX], "ast/grey_box.png", 
+				Renderer, 255);
+	LoadTexture(&UITextures[UI_TEXTURE_CHECKBOX_ACTIVE], 
+				"ast/blue_boxCheckmark.png", 
+				Renderer, 255);
 				
 	return UITextures;
 }
 
-button CreateButton(v2 Pos, v2 Dim, image_data Texture1, image_data Texture2, SDL_Renderer* Renderer, TTF_Font* Font = 0, char* Text = 0)
+button CreateButton(v2 Pos, v2 Dim,  
+					image_data Texture1, image_data Texture2,
+					SDL_Renderer* Renderer, TTF_Font* Font = 0, char* Text = 0)
 {
 	button Button = {};
 	Button.Rect = Rect32(Pos, Dim);
+	Button.Pos = Pos;
+	Button.Dim = Dim;
 	if(Text)
 	{
 		LoadText(Renderer, Font, &Button.Text, Text, {});
 		Button.TextRect = {V2(), V2(Button.Text.Dim)};
-		SetRect32ScreenSpace(&Button.TextRect, &Button.Rect, V2(), POSITION_CENTERED);
+		SetRect32ScreenSpace(&Button.TextRect, &Button.Rect, V2(), 
+							 POSITION_CENTERED);
 	}		
 	Button.IdleTexture = Texture1;
 	Button.EventTexture = Texture2;
@@ -140,6 +150,14 @@ void HandleCheckbox(checkbox* Checkbox, game_input* Input)
 	}
 }
 
+void HandleCheckboxes(checkbox* Checkbox, game_input* Input, int Count)
+{
+	for(int i = 0; i < Count; ++i)
+	{
+		HandleCheckbox(&Checkbox[i], Input);
+	}
+}
+
 void RenderCheckbox(checkbox* Checkbox, SDL_Renderer* Renderer)
 {
 	if(Checkbox->Active)
@@ -149,5 +167,13 @@ void RenderCheckbox(checkbox* Checkbox, SDL_Renderer* Renderer)
 	else
 	{
 		SDL_RenderCopy(Renderer, Checkbox->Texture.Texture, 0, &Checkbox->RenderRect);
+	}
+}
+
+void RenderCheckboxes(checkbox* Checkbox, SDL_Renderer* Renderer, int Count)
+{
+	for(int i = 0; i < Count; ++i)
+	{
+		RenderCheckbox(&Checkbox[i], Renderer);
 	}
 }

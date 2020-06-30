@@ -17,7 +17,9 @@ image_data* LoadUITextures(SDL_Renderer* Renderer)
 	return UITextures;
 }
 
-button CreateButton(v2 Pos, v2 Dim, image_data Texture1, image_data Texture2, SDL_Renderer* Renderer, TTF_Font* Font = 0, char* Text = 0)
+button CreateButton(v2 Pos, v2 Dim,  
+					image_data Texture1, image_data Texture2,
+					SDL_Renderer* Renderer, TTF_Font* Font = 0, char* Text = 0)
 {
 	button Button = {};
 	Button.Rect = Rect32(Pos, Dim);

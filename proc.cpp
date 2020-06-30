@@ -92,3 +92,15 @@ uintptr_t GetDAMAddr(attach_result* Attach, char* ModuleName, uint32 ModuleOffse
 									 AddrOffetCount);
 	return Result;
 }
+
+void ReadWriteMemoryU32(button* Button, attach_result* Attach, uintptr_t Addr, uint32* Value, int n)
+{
+	if(ReadProcessMemory(Attach->Process, (void*)Addr, Value, sizeof(uint32), 0))
+	{
+		if(Button->State == BUTTON_STATE_L_CLICK)
+		{						 
+			*Value += n;
+			WriteProcessMemory(Attach->Process, (void*)Addr, Value, sizeof(uint32), 0);
+		}
+	}
+}

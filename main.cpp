@@ -2,13 +2,14 @@
 
 #define ArraySize(arr) (sizeof(arr)/sizeof(arr[0]))
 
-#include "proc.cpp"
 #include "UI.cpp"
+#include "proc.cpp"
 
 enum cheat_buttons
 {
 	CHEAT_BUTTON_GOLD,
 	CHEAT_BUTTON_EXP,
+	CHEAT_BUTTON_LUNAR,
 	CHEAT_BUTTON_MAX,
 };
 
@@ -16,6 +17,8 @@ enum cheat_checkbox
 {
 	CHECKBOX_UNLIMITED_JUMPS,
 	CHECKBOX_GOD_MODE,
+	CHECKBOX_NO_TP_CHARGE,
+	CHECKBOX_SKIP_TP,
 	CHECKBOX_MAX,
 };
 
@@ -32,7 +35,7 @@ int WinMain(HINSTANCE hInstance,
 	char* ModuleName = "UnityPlayer.dll";
 	
 	InitLib(LIB_SDL_FULL);
-	render Graphics = InitGraphics("RoR2 Trainer v1.0", {400, 400}, 0);
+	render Graphics = InitGraphics("RoR2 Trainer v1.0", {400, 500}, 0);
 	
 	attach_result Attach = AttachProcess(ProcessName);
 	
@@ -60,20 +63,30 @@ int WinMain(HINSTANCE hInstance,
 	char* ButtonLabelsName[] = 
 	{
 		"Gold",
-		"EXP"
+		"EXP",
+		"Lunar"
+	};
+	
+	char* AmountIncreaseText[] =
+	{
+		"+10k",
+		"+1m",
+		"+50"
 	};
 	
 	char* CheckboxLabelNames[] = 
 	{
 		"Unlimited Jumps",
-		"God Mode"
+		"God Mode",
+		"No TP Charge",
+		"Skip TP Event"
 	};
 	
 	button CheatButtons[CHEAT_BUTTON_MAX] = {};
 	label ButtonLabels[CHEAT_BUTTON_MAX] = {};
 	for(int i = 0; i < CHEAT_BUTTON_MAX; ++i)
 	{
-		CheatButtons[i] = CreateButton(V2(100, 50 + (i*60.0f)), V2(50, 50), UITextures[0], UITextures[1], Graphics.Renderer, ButtonFont, "+10k");
+		CheatButtons[i] = CreateButton(V2(100, 50 + (i*60.0f)), V2(50, 50), UITextures[0], UITextures[1], Graphics.Renderer, ButtonFont, AmountIncreaseText[i]);
 		ButtonLabels[i] = CreateLabel(V2(10, CheatButtons[i].Pos.y+25-LabelH*0.5f), ButtonLabelsName[i], LabelsFont, {255, 255, 255, 255}, Graphics.Renderer);
 	}
 	
@@ -81,19 +94,24 @@ int WinMain(HINSTANCE hInstance,
 	label CheckboxLabels[CHECKBOX_MAX] = {};
 	for(int i = 0; i < CHECKBOX_MAX; ++i)
 	{
-		CheatCB[i] = CreateCheckbox(V2(200, 230 + (i*60.0f)), V2(38, 36), UITextures[2], UITextures[3]);
+		CheatCB[i] = CreateCheckbox(V2(200, 230 + (i*50.0f)), V2(38, 36), UITextures[2], UITextures[3]);
 		CheckboxLabels[i] = CreateLabel(V2(10, CheatCB[i].Rect.Pos.y+18-LabelH*0.5f), CheckboxLabelNames[i], LabelsFont, {255, 255, 255, 255}, Graphics.Renderer);
 	}
-							
+	
+	v3 PlayerCoord = {};
+	
 	timer AttachProcessTimer = CreateTimer(5.0f);
+	timer FreezeTPChargeTimer = CreateTimer(3.0f);
 	
 	bool Running = true;
 	
 	while(Running)
 	{
 		image_data ValueText[CHEAT_BUTTON_MAX] = {};
+		image_data PositionText = {};
 		
 		ProcessTimer(&AttachProcessTimer, t);
+		ProcessTimer(&FreezeTPChargeTimer, t);
 		if(AttachProcessTimer.Complete)
 		{
 			StartTimer(&AttachProcessTimer);
@@ -129,42 +147,22 @@ int WinMain(HINSTANCE hInstance,
 			uint32 GoldModuleOffset = 0x015A95D8;
 
 			uintptr_t GoldAddr = GetDAMAddr(&Attach, ModuleName, GoldModuleOffset, GoldAddrOffset, ArraySize(GoldAddrOffset));
-											 
-			if(ReadProcessMemory(Attach.Process, (void*)GoldAddr, &CheatValue[CHEAT_BUTTON_GOLD], sizeof(CheatValue[CHEAT_BUTTON_GOLD]), 0))
-			{
-				if(CheatButtons[CHEAT_BUTTON_GOLD].State == BUTTON_STATE_L_CLICK)
-				{						 
-					CheatValue[CHEAT_BUTTON_GOLD] += 10000;
-					WriteProcessMemory(Attach.Process, (void*)GoldAddr, &CheatValue[CHEAT_BUTTON_GOLD], sizeof(CheatValue[CHEAT_BUTTON_GOLD]), 0);
-				}
-			}
+			
+			ReadWriteMemoryU32(&CheatButtons[CHEAT_BUTTON_GOLD], &Attach, GoldAddr, &CheatValue[CHEAT_BUTTON_GOLD], 10000);
 			
 			uint32 EXPAddrOffset[] = {0x10, 0x600, 0x558, 0x30, 0x28};
 			uint32 EXPModuleOffset = 0x491DC8;
 			
 			uintptr_t EXPAddr = GetDAMAddr(&Attach, "mono-2.0-bdwgc.dll", EXPModuleOffset, EXPAddrOffset, ArraySize(EXPAddrOffset));
 			
-			if(ReadProcessMemory(Attach.Process, (void*)EXPAddr, &CheatValue[CHEAT_BUTTON_EXP], sizeof(CheatValue[CHEAT_BUTTON_EXP]), 0))
-			{
-				if(CheatButtons[CHEAT_BUTTON_EXP].State == BUTTON_STATE_L_CLICK)
-				{						 
-					CheatValue[CHEAT_BUTTON_EXP] += 10000;
-					WriteProcessMemory(Attach.Process, (void*)EXPAddr, &CheatValue[CHEAT_BUTTON_EXP], sizeof(CheatValue[CHEAT_BUTTON_EXP]), 0);
-				}
-			}
-		}
-		
-		for(int i = 0; i < CHEAT_BUTTON_MAX; ++i)
-		{
-			char Buffer[100] = {};
-			sprintf(Buffer, "%d", CheatValue[i]);
-			LoadText(Graphics.Renderer, LabelsFont, &ValueText[i], Buffer, {255, 0, 0, 255});
-					 
-			rect32 TextRect = ButtonLabels[i].Rect;
-			TextRect.Pos += V2(160, 0);
-			TextRect.Dim = V2(ValueText[i].Dim);
+			ReadWriteMemoryU32(&CheatButtons[CHEAT_BUTTON_EXP], &Attach, EXPAddr, &CheatValue[CHEAT_BUTTON_EXP], 1000000);
 			
-			ValueText[i].Rect = SetRectRounded(TextRect);
+			uint32 LunarCoinOffset[] = {0x198, 0x428, 0x6E8, 0xD0, 0xA4};
+			uint32 LunarCoinModuleOffset = 0x4971D8;
+			
+			uintptr_t LunarCoinAddr = GetDAMAddr(&Attach, "mono-2.0-bdwgc.dll", LunarCoinModuleOffset, LunarCoinOffset, ArraySize(LunarCoinOffset));
+			
+			ReadWriteMemoryU32(&CheatButtons[CHEAT_BUTTON_LUNAR], &Attach, LunarCoinAddr, &CheatValue[CHEAT_BUTTON_LUNAR], 50);
 		}
 		
 		if(Attach.Status == ATTACH_SUCCEED)
@@ -194,7 +192,64 @@ int WinMain(HINSTANCE hInstance,
 				real32 Value = 9999;
 				WriteProcessMemory(Attach.Process, (void*)HPAddr, &Value, sizeof(Value), 0);			   
 			}
+			
+			if(CheatCB[CHECKBOX_SKIP_TP].Active)
+			{
+				uint32 ModuleOffset = 0x491DC8;
+				uint32 AddrOffset[] = {0x18, 0xA80, 0x210, 0x78, 0x94};
+				
+				uintptr_t ChargeAddr = GetDAMAddr(&Attach, "mono-2.0-bdwgc.dll", ModuleOffset, AddrOffset, ArraySize(AddrOffset));
+
+				real32 Value = 1;
+				WriteProcessMemory(Attach.Process, (void*)ChargeAddr, &Value, sizeof(Value), 0);
+			}
+			
+			if(CheatCB[CHECKBOX_NO_TP_CHARGE].Active && !CheatCB[CHECKBOX_SKIP_TP].Active)
+			{
+				if(FreezeTPChargeTimer.Complete)
+				{
+					StartTimer(&FreezeTPChargeTimer);
+					uint32 ModuleOffset = 0x491DC8;
+					uint32 AddrOffset[] = {0x18, 0xA80, 0x210, 0x78, 0x94};
+					
+					uintptr_t ChargeAddr = GetDAMAddr(&Attach, "mono-2.0-bdwgc.dll", ModuleOffset, AddrOffset, ArraySize(AddrOffset));
+
+					real32 Value = 0.99f;
+					WriteProcessMemory(Attach.Process, (void*)ChargeAddr, &Value, sizeof(Value), 0);	
+				}
+			}
+			
+			uint32 CoordModuleOffset = 0x491DE8;
+			uint32 CoordAddrOffset[] = {0x490, 0x1B8, 0x60, 0x30, 0x40, 0x30, 0x258};
+			
+			uintptr_t YCoordAddr = GetDAMAddr(&Attach, "mono-2.0-bdwgc.dll", CoordModuleOffset, CoordAddrOffset, ArraySize(CoordAddrOffset));
+			uintptr_t XCoordAddr = YCoordAddr - 0x4; 
+			uintptr_t ZCoordAddr = YCoordAddr + 0x4; 
+			
+			ReadProcessMemory(Attach.Process, (void*)XCoordAddr, &PlayerCoord.x, sizeof(real32), 0);
+			ReadProcessMemory(Attach.Process, (void*)YCoordAddr, &PlayerCoord.y, sizeof(real32), 0);
+			ReadProcessMemory(Attach.Process, (void*)ZCoordAddr, &PlayerCoord.z, sizeof(real32), 0);
 		}
+		
+		for(int i = 0; i < CHEAT_BUTTON_MAX; ++i)
+		{
+			char Buffer[100] = {};
+			sprintf(Buffer, "%d", CheatValue[i]);
+			LoadText(Graphics.Renderer, LabelsFont, &ValueText[i], Buffer, {255, 0, 0, 255});
+					 
+			rect32 TextRect = ButtonLabels[i].Rect;
+			TextRect.Pos += V2(160, 0);
+			TextRect.Dim = V2(ValueText[i].Dim);
+			
+			ValueText[i].Rect = SetRectRounded(TextRect);
+		}
+		
+		char Buffer[100] = {};
+		sprintf(Buffer, "X: %.2f Y: %.2f Z: %.2f", PlayerCoord.x, PlayerCoord.y, PlayerCoord.z);
+		LoadText(Graphics.Renderer, LabelsFont, &PositionText, Buffer, {0, 255, 0, 255});
+		rect32 TextRect = {V2(), V2(PositionText.Dim)};
+		SetRect32ScreenSpace(&TextRect, &WindowRect, {}, POSITION_BOTTOM_RIGHT);
+		PositionText.Rect = SetRectRounded(TextRect);
 		
 		real32 FrameCompleteTime = 
 		Win32GetSecondElapsed(LastCount, SDL_GetPerformanceCounter());
@@ -220,6 +275,9 @@ int WinMain(HINSTANCE hInstance,
 		RenderCheckboxes(CheatCB, Graphics.Renderer, CHECKBOX_MAX);
 		RenderLabels(ButtonLabels, Graphics.Renderer, CHEAT_BUTTON_MAX);
 		RenderLabels(CheckboxLabels, Graphics.Renderer, CHECKBOX_MAX);
+		
+		SDL_RenderCopy(Graphics.Renderer, PositionText.Texture, 0, &PositionText.Rect);
+		SDL_DestroyTexture(PositionText.Texture);
 		
 		for(int i = 0; i < CHEAT_BUTTON_MAX; ++i)
 		{

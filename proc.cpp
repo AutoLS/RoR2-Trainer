@@ -93,11 +93,11 @@ uintptr_t GetDAMAddr(attach_result* Attach, char* ModuleName, uint32 ModuleOffse
 	return Result;
 }
 
-void ReadWriteMemoryU32(button* Button, attach_result* Attach, uintptr_t Addr, uint32* Value, int n)
+void ReadWriteMemoryU32(button* Button, attach_result* Attach, uintptr_t Addr, uint32* Value, int n, int Key)
 {
 	if(ReadProcessMemory(Attach->Process, (void*)Addr, Value, sizeof(uint32), 0))
 	{
-		if(Button->State == BUTTON_STATE_L_CLICK)
+		if(Button->State == BUTTON_STATE_L_CLICK || (GetAsyncKeyState(Key) & 1))
 		{						 
 			*Value += n;
 			WriteProcessMemory(Attach->Process, (void*)Addr, Value, sizeof(uint32), 0);

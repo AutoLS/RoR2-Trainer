@@ -4,23 +4,7 @@
 
 #include "UI.cpp"
 #include "proc.cpp"
-
-enum cheat_buttons
-{
-	CHEAT_BUTTON_GOLD,
-	CHEAT_BUTTON_EXP,
-	CHEAT_BUTTON_LUNAR,
-	CHEAT_BUTTON_MAX,
-};
-
-enum cheat_checkbox
-{
-	CHECKBOX_UNLIMITED_JUMPS,
-	CHECKBOX_GOD_MODE,
-	CHECKBOX_NO_TP_CHARGE,
-	CHECKBOX_SKIP_TP,
-	CHECKBOX_MAX,
-};
+#include "cheat.cpp"
 
 #if DEBUG_MODE
 int wmain()
@@ -81,6 +65,10 @@ int WinMain(HINSTANCE hInstance,
 		"No TP Charge",
 		"Skip TP Event"
 	};
+
+	button HelpButton = CreateButton(V2(Graphics.WinDim.x - 65, 15), V2(50, 50), UITextures[0], UITextures[1], Graphics.Renderer, ButtonFont, "HELP");
+	
+	help_menu HelpMenu = InitHelpMenu(LabelsFont, ButtonFont, &Graphics, UITextures);
 	
 	button CheatButtons[CHEAT_BUTTON_MAX] = {};
 	label ButtonLabels[CHEAT_BUTTON_MAX] = {};
@@ -100,10 +88,11 @@ int WinMain(HINSTANCE hInstance,
 	
 	v3 PlayerCoord = {};
 	
-	timer AttachProcessTimer = CreateTimer(5.0f);
+	timer AttachProcessTimer = CreateTimer(3.0f);
 	timer FreezeTPChargeTimer = CreateTimer(3.0f);
 	
 	bool Running = true;
+	cheat_state CheatState = STATE_MAIN;
 	
 	while(Running)
 	{
@@ -112,11 +101,24 @@ int WinMain(HINSTANCE hInstance,
 		
 		ProcessTimer(&AttachProcessTimer, t);
 		ProcessTimer(&FreezeTPChargeTimer, t);
-		if(AttachProcessTimer.Complete)
+		if(Attach.Status == ATTACH_SUCCEED)
 		{
-			StartTimer(&AttachProcessTimer);
-			Attach = AttachProcess(ProcessName);
+			DWORD ExitCode = 0;
+			GetExitCodeProcess(Attach.Process, &ExitCode);
+			if(ExitCode == 0)
+			{
+				Attach.Status = ATTACH_FAILED;
+			}
 		}
+		else
+		{
+			if(AttachProcessTimer.Complete)
+			{
+				StartTimer(&AttachProcessTimer);
+				Attach = AttachProcess(ProcessName);
+			}
+		}
+		
 		ResetKeyState(&Input.Mouse, BUTTON_MAX);
 		ResetKeyState(&Input.Keyboard, KEY_MAX);
 		
@@ -131,15 +133,49 @@ int WinMain(HINSTANCE hInstance,
 		SDL_SetRenderDrawColor(Graphics.Renderer, 50, 50, 50, 255);
 		SDL_RenderClear(Graphics.Renderer);
 		
-		while(t > 0)
+		switch(CheatState)
 		{
-			real32 dt = Min(t, Graphics.Display.TargetSecPerFrame);
-			//Logic
-			t -= dt;
+			case STATE_MAIN:
+			{
+				HandleButton(&HelpButton, &Input);
+				HandleButtons(CheatButtons, &Input, CHEAT_BUTTON_MAX);
+				HandleCheckboxes(CheatCB, &Input, CHECKBOX_MAX);
+				
+				if(HelpButton.State == BUTTON_STATE_L_CLICK)
+				{
+					CheatState = STATE_HELP;
+				}				
+			} break;
+			case STATE_HELP:
+			{
+				UpdateHelpMenu(&HelpMenu, &Input);
+				if(GetAsyncKeyState(VK_ESCAPE) & 1 || 
+				   HelpMenu.Back.State == BUTTON_STATE_L_CLICK)
+				{
+					CheatState = STATE_MAIN;
+				}
+			} break;
 		}
 		
-		HandleButtons(CheatButtons, &Input, CHEAT_BUTTON_MAX);
-		HandleCheckboxes(CheatCB, &Input, CHECKBOX_MAX);
+		if(Attach.Status == ATTACH_SUCCEED)
+		{
+			if(GetAsyncKeyState(VK_F1) & 1)
+			{
+				CheatCB[CHECKBOX_UNLIMITED_JUMPS].Active = !CheatCB[CHECKBOX_UNLIMITED_JUMPS].Active;
+			}
+			if(GetAsyncKeyState(VK_F2) & 1)
+			{
+				CheatCB[CHECKBOX_GOD_MODE].Active = !CheatCB[CHECKBOX_GOD_MODE].Active;
+			}
+			if(GetAsyncKeyState(VK_F3) & 1)
+			{
+				CheatCB[CHECKBOX_NO_TP_CHARGE].Active = !CheatCB[CHECKBOX_NO_TP_CHARGE].Active;
+			}
+			if(GetAsyncKeyState(VK_F4) & 1)
+			{
+				CheatCB[CHECKBOX_SKIP_TP].Active = !CheatCB[CHECKBOX_SKIP_TP].Active;
+			}
+		}
 		
 		if(Attach.Status == ATTACH_SUCCEED)
 		{
@@ -148,21 +184,21 @@ int WinMain(HINSTANCE hInstance,
 
 			uintptr_t GoldAddr = GetDAMAddr(&Attach, ModuleName, GoldModuleOffset, GoldAddrOffset, ArraySize(GoldAddrOffset));
 			
-			ReadWriteMemoryU32(&CheatButtons[CHEAT_BUTTON_GOLD], &Attach, GoldAddr, &CheatValue[CHEAT_BUTTON_GOLD], 10000);
+			ReadWriteMemoryU32(&CheatButtons[CHEAT_BUTTON_GOLD], &Attach, GoldAddr, &CheatValue[CHEAT_BUTTON_GOLD], 10000, 'G');
 			
 			uint32 EXPAddrOffset[] = {0x10, 0x600, 0x558, 0x30, 0x28};
 			uint32 EXPModuleOffset = 0x491DC8;
 			
 			uintptr_t EXPAddr = GetDAMAddr(&Attach, "mono-2.0-bdwgc.dll", EXPModuleOffset, EXPAddrOffset, ArraySize(EXPAddrOffset));
 			
-			ReadWriteMemoryU32(&CheatButtons[CHEAT_BUTTON_EXP], &Attach, EXPAddr, &CheatValue[CHEAT_BUTTON_EXP], 1000000);
+			ReadWriteMemoryU32(&CheatButtons[CHEAT_BUTTON_EXP], &Attach, EXPAddr, &CheatValue[CHEAT_BUTTON_EXP], 1000000, 'H');
 			
 			uint32 LunarCoinOffset[] = {0x198, 0x428, 0x6E8, 0xD0, 0xA4};
 			uint32 LunarCoinModuleOffset = 0x4971D8;
 			
 			uintptr_t LunarCoinAddr = GetDAMAddr(&Attach, "mono-2.0-bdwgc.dll", LunarCoinModuleOffset, LunarCoinOffset, ArraySize(LunarCoinOffset));
 			
-			ReadWriteMemoryU32(&CheatButtons[CHEAT_BUTTON_LUNAR], &Attach, LunarCoinAddr, &CheatValue[CHEAT_BUTTON_LUNAR], 50);
+			ReadWriteMemoryU32(&CheatButtons[CHEAT_BUTTON_LUNAR], &Attach, LunarCoinAddr, &CheatValue[CHEAT_BUTTON_LUNAR], 50, 'L');
 		}
 		
 		if(Attach.Status == ATTACH_SUCCEED)
@@ -231,33 +267,12 @@ int WinMain(HINSTANCE hInstance,
 			ReadProcessMemory(Attach.Process, (void*)ZCoordAddr, &PlayerCoord.z, sizeof(real32), 0);
 		}
 		
-		for(int i = 0; i < CHEAT_BUTTON_MAX; ++i)
-		{
-			char Buffer[100] = {};
-			sprintf(Buffer, "%d", CheatValue[i]);
-			LoadText(Graphics.Renderer, LabelsFont, &ValueText[i], Buffer, {255, 0, 0, 255});
-					 
-			rect32 TextRect = ButtonLabels[i].Rect;
-			TextRect.Pos += V2(160, 0);
-			TextRect.Dim = V2(ValueText[i].Dim);
-			
-			ValueText[i].Rect = SetRectRounded(TextRect);
-		}
-		
-		char Buffer[100] = {};
-		sprintf(Buffer, "X: %.2f Y: %.2f Z: %.2f", PlayerCoord.x, PlayerCoord.y, PlayerCoord.z);
-		LoadText(Graphics.Renderer, LabelsFont, &PositionText, Buffer, {0, 255, 0, 255});
-		rect32 TextRect = {V2(), V2(PositionText.Dim)};
-		SetRect32ScreenSpace(&TextRect, &WindowRect, {}, POSITION_BOTTOM_RIGHT);
-		PositionText.Rect = SetRectRounded(TextRect);
-		
 		real32 FrameCompleteTime = 
 		Win32GetSecondElapsed(LastCount, SDL_GetPerformanceCounter());
 		
 		if(FrameCompleteTime < Graphics.Display.TargetSecPerFrame)
 		{
-			int SleepTime = (int)(Graphics.Display.TargetSecPerFrame - 
-								  FrameCompleteTime * 1000) - 1;
+			int SleepTime = (int)((Graphics.Display.TargetSecPerFrame - Win32GetSecondElapsed(LastCount, SDL_GetPerformanceCounter())) * 1000) - 1;
 			if(SleepTime > 0)
 			{
 				Sleep(SleepTime);
@@ -269,20 +284,51 @@ int WinMain(HINSTANCE hInstance,
 		uint64 EndCount = SDL_GetPerformanceCounter();
 		
 		//Render
-		Attach.Status ? RenderLabel(&StatusLabelSucceed, Graphics.Renderer) : RenderLabel(&StatusLabelFailed, Graphics.Renderer);
-		
-		RenderButtons(CheatButtons, Graphics.Renderer, CHEAT_BUTTON_MAX);
-		RenderCheckboxes(CheatCB, Graphics.Renderer, CHECKBOX_MAX);
-		RenderLabels(ButtonLabels, Graphics.Renderer, CHEAT_BUTTON_MAX);
-		RenderLabels(CheckboxLabels, Graphics.Renderer, CHECKBOX_MAX);
-		
-		SDL_RenderCopy(Graphics.Renderer, PositionText.Texture, 0, &PositionText.Rect);
-		SDL_DestroyTexture(PositionText.Texture);
-		
-		for(int i = 0; i < CHEAT_BUTTON_MAX; ++i)
+		switch(CheatState)
 		{
-			SDL_RenderCopy(Graphics.Renderer, ValueText[i].Texture, 0, &ValueText[i].Rect);
-			SDL_DestroyTexture(ValueText[i].Texture);
+			case STATE_MAIN:
+			{
+				for(int i = 0; i < CHEAT_BUTTON_MAX; ++i)
+				{
+					char Buffer[100] = {};
+					sprintf(Buffer, "%d", CheatValue[i]);
+					LoadText(Graphics.Renderer, LabelsFont, &ValueText[i], Buffer, {255, 0, 0, 255});
+							 
+					rect32 TextRect = ButtonLabels[i].Rect;
+					TextRect.Pos += V2(160, 0);
+					TextRect.Dim = V2(ValueText[i].Dim);
+					
+					ValueText[i].Rect = SetRectRounded(TextRect);
+				}
+				
+				char Buffer[100] = {};
+				sprintf(Buffer, "X: %.2f Y: %.2f Z: %.2f", PlayerCoord.x, PlayerCoord.y, PlayerCoord.z);
+				LoadText(Graphics.Renderer, LabelsFont, &PositionText, Buffer, {0, 255, 0, 255});
+				rect32 TextRect = {V2(), V2(PositionText.Dim)};
+				SetRect32ScreenSpace(&TextRect, &WindowRect, {}, POSITION_BOTTOM_RIGHT);
+				PositionText.Rect = SetRectRounded(TextRect);
+				
+				Attach.Status ? RenderLabel(&StatusLabelSucceed, Graphics.Renderer) : RenderLabel(&StatusLabelFailed, Graphics.Renderer);
+		
+				RenderButton(&HelpButton, Graphics.Renderer);
+				RenderButtons(CheatButtons, Graphics.Renderer, CHEAT_BUTTON_MAX);
+				RenderCheckboxes(CheatCB, Graphics.Renderer, CHECKBOX_MAX);
+				RenderLabels(ButtonLabels, Graphics.Renderer, CHEAT_BUTTON_MAX);
+				RenderLabels(CheckboxLabels, Graphics.Renderer, CHECKBOX_MAX);
+				
+				SDL_RenderCopy(Graphics.Renderer, PositionText.Texture, 0, &PositionText.Rect);
+				SDL_DestroyTexture(PositionText.Texture);
+				
+				for(int i = 0; i < CHEAT_BUTTON_MAX; ++i)
+				{
+					SDL_RenderCopy(Graphics.Renderer, ValueText[i].Texture, 0, &ValueText[i].Rect);
+					SDL_DestroyTexture(ValueText[i].Texture);
+				}
+			} break;
+			case STATE_HELP:
+			{
+				RenderHelpMenu(&HelpMenu, Graphics.Renderer);
+			} break;
 		}
 		
 		SDL_RenderPresent(Graphics.Renderer);

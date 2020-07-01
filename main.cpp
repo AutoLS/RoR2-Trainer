@@ -186,15 +186,15 @@ int WinMain(HINSTANCE hInstance,
 			
 			ReadWriteMemoryU32(&CheatButtons[CHEAT_BUTTON_GOLD], &Attach, GoldAddr, &CheatValue[CHEAT_BUTTON_GOLD], 10000, 'G');
 			
-			uint32 EXPAddrOffset[] = {0x10, 0x600, 0x558, 0x30, 0x28};
+			uint32 EXPAddrOffset[] = {0x10, 0x460, 0x6F8, 0x30, 0x28};
 			uint32 EXPModuleOffset = 0x491DC8;
 			
 			uintptr_t EXPAddr = GetDAMAddr(&Attach, "mono-2.0-bdwgc.dll", EXPModuleOffset, EXPAddrOffset, ArraySize(EXPAddrOffset));
 			
 			ReadWriteMemoryU32(&CheatButtons[CHEAT_BUTTON_EXP], &Attach, EXPAddr, &CheatValue[CHEAT_BUTTON_EXP], 1000000, 'H');
 			
-			uint32 LunarCoinOffset[] = {0x198, 0x428, 0x6E8, 0xD0, 0xA4};
-			uint32 LunarCoinModuleOffset = 0x4971D8;
+			uint32 LunarCoinOffset[] = {0x590, 0x1A0, 0x60, 0x20, 0xA4};
+			uint32 LunarCoinModuleOffset = 0x493C70;
 			
 			uintptr_t LunarCoinAddr = GetDAMAddr(&Attach, "mono-2.0-bdwgc.dll", LunarCoinModuleOffset, LunarCoinOffset, ArraySize(LunarCoinOffset));
 			
@@ -231,10 +231,10 @@ int WinMain(HINSTANCE hInstance,
 			
 			if(CheatCB[CHECKBOX_SKIP_TP].Active)
 			{
-				uint32 ModuleOffset = 0x491DC8;
-				uint32 AddrOffset[] = {0x18, 0xA80, 0x210, 0x78, 0x94};
+				uint32 ModuleOffset = 0x15D02E0;
+				uint32 AddrOffset[] = {0x590, 0xF28, 0xC3C, 0x28, 0x94};
 				
-				uintptr_t ChargeAddr = GetDAMAddr(&Attach, "mono-2.0-bdwgc.dll", ModuleOffset, AddrOffset, ArraySize(AddrOffset));
+				uintptr_t ChargeAddr = GetDAMAddr(&Attach, ModuleName, ModuleOffset, AddrOffset, ArraySize(AddrOffset));
 
 				real32 Value = 1;
 				WriteProcessMemory(Attach.Process, (void*)ChargeAddr, &Value, sizeof(Value), 0);
@@ -245,8 +245,8 @@ int WinMain(HINSTANCE hInstance,
 				if(FreezeTPChargeTimer.Complete)
 				{
 					StartTimer(&FreezeTPChargeTimer);
-					uint32 ModuleOffset = 0x491DC8;
-					uint32 AddrOffset[] = {0x18, 0xA80, 0x210, 0x78, 0x94};
+					uint32 ModuleOffset = 0x15D02E0;
+					uint32 AddrOffset[] = {0x590, 0xF28, 0xC3C, 0x28, 0x94};
 					
 					uintptr_t ChargeAddr = GetDAMAddr(&Attach, "mono-2.0-bdwgc.dll", ModuleOffset, AddrOffset, ArraySize(AddrOffset));
 
@@ -258,7 +258,7 @@ int WinMain(HINSTANCE hInstance,
 			uint32 CoordModuleOffset = 0x491DE8;
 			uint32 CoordAddrOffset[] = {0x490, 0x1B8, 0x60, 0x30, 0x40, 0x30, 0x258};
 			
-			uintptr_t YCoordAddr = GetDAMAddr(&Attach, "mono-2.0-bdwgc.dll", CoordModuleOffset, CoordAddrOffset, ArraySize(CoordAddrOffset));
+			uintptr_t YCoordAddr = GetDAMAddr(&Attach, ModuleName, CoordModuleOffset, CoordAddrOffset, ArraySize(CoordAddrOffset));
 			uintptr_t XCoordAddr = YCoordAddr - 0x4; 
 			uintptr_t ZCoordAddr = YCoordAddr + 0x4; 
 			

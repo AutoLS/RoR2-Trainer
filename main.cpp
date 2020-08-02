@@ -231,10 +231,10 @@ int WinMain(HINSTANCE hInstance,
 			
 			if(CheatCB[CHECKBOX_SKIP_TP].Active)
 			{
-				uint32 ModuleOffset = 0x15D02E0;
-				uint32 AddrOffset[] = {0x590, 0xF28, 0xC3C, 0x28, 0x94};
+				uint32 ModuleOffset = 0x494A10;
+				uint32 AddrOffset[] = {0x18, 0x48, 0x28, 0x70, 0x48, 0x78, 0x94};
 				
-				uintptr_t ChargeAddr = GetDAMAddr(&Attach, ModuleName, ModuleOffset, AddrOffset, ArraySize(AddrOffset));
+				uintptr_t ChargeAddr = GetDAMAddr(&Attach, "mono-2.0-bdwgc.dll", ModuleOffset, AddrOffset, ArraySize(AddrOffset));
 
 				real32 Value = 1;
 				WriteProcessMemory(Attach.Process, (void*)ChargeAddr, &Value, sizeof(Value), 0);
@@ -245,8 +245,8 @@ int WinMain(HINSTANCE hInstance,
 				if(FreezeTPChargeTimer.Complete)
 				{
 					StartTimer(&FreezeTPChargeTimer);
-					uint32 ModuleOffset = 0x15D02E0;
-					uint32 AddrOffset[] = {0x590, 0xF28, 0xC3C, 0x28, 0x94};
+					uint32 ModuleOffset = 0x494A10;
+					uint32 AddrOffset[] = {0x18, 0x48, 0x28, 0x70, 0x48, 0x78, 0x94};
 					
 					uintptr_t ChargeAddr = GetDAMAddr(&Attach, "mono-2.0-bdwgc.dll", ModuleOffset, AddrOffset, ArraySize(AddrOffset));
 

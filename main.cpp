@@ -62,7 +62,7 @@ int WinMain(HINSTANCE hInstance,
 	{
 		"Unlimited Jumps",
 		"God Mode",
-		"No TP Charge",
+		"Fully Charge TP",
 		"Skip TP Event"
 	};
 
@@ -139,7 +139,7 @@ int WinMain(HINSTANCE hInstance,
 			{
 				HandleButton(&HelpButton, &Input);
 				HandleButtons(CheatButtons, &Input, CHEAT_BUTTON_MAX);
-				HandleCheckboxes(CheatCB, &Input, CHECKBOX_MAX);
+				HandleCheckboxes(CheatCB, &Input, CHECKBOX_MAX-1);
 				
 				if(HelpButton.State == BUTTON_STATE_L_CLICK)
 				{
@@ -173,7 +173,7 @@ int WinMain(HINSTANCE hInstance,
 			}
 			if(GetAsyncKeyState(VK_F4) & 1)
 			{
-				CheatCB[CHECKBOX_SKIP_TP].Active = !CheatCB[CHECKBOX_SKIP_TP].Active;
+				//CheatCB[CHECKBOX_SKIP_TP].Active = !CheatCB[CHECKBOX_SKIP_TP].Active;
 			}
 		}
 		
@@ -186,15 +186,16 @@ int WinMain(HINSTANCE hInstance,
 			
 			ReadWriteMemoryU32(&CheatButtons[CHEAT_BUTTON_GOLD], &Attach, GoldAddr, &CheatValue[CHEAT_BUTTON_GOLD], 10000, 'G');
 			
-			uint32 EXPAddrOffset[] = {0x10, 0x460, 0x6F8, 0x30, 0x28};
-			uint32 EXPModuleOffset = 0x491DC8;
+#if 0
+			uint32 EXPAddrOffset[] = {0xA0, 0xCA0, 0x68, 0x68, 0x70, 0x90, 0x28};
+			uint32 EXPModuleOffset = 0x491DE8;
 			
 			uintptr_t EXPAddr = GetDAMAddr(&Attach, "mono-2.0-bdwgc.dll", EXPModuleOffset, EXPAddrOffset, ArraySize(EXPAddrOffset));
 			
 			ReadWriteMemoryU32(&CheatButtons[CHEAT_BUTTON_EXP], &Attach, EXPAddr, &CheatValue[CHEAT_BUTTON_EXP], 1000000, 'H');
-			
-			uint32 LunarCoinOffset[] = {0x590, 0x1A0, 0x60, 0x20, 0xA4};
-			uint32 LunarCoinModuleOffset = 0x493C70;
+#endif	
+			uint32 LunarCoinOffset[] = {0x10, 0x60, 0xA0, 0x18, 0x70, 0x20, 0xA4};
+			uint32 LunarCoinModuleOffset = 0x4967C8;
 			
 			uintptr_t LunarCoinAddr = GetDAMAddr(&Attach, "mono-2.0-bdwgc.dll", LunarCoinModuleOffset, LunarCoinOffset, ArraySize(LunarCoinOffset));
 			
@@ -205,10 +206,10 @@ int WinMain(HINSTANCE hInstance,
 		{
 			if(CheatCB[CHECKBOX_UNLIMITED_JUMPS].Active)
 			{
-				uint32 JumpModuleOffset = 0x01532288;
+				uint32 JumpModuleOffset = 0x0491DE8;
 				uint32 JumpAddrOffset[] = 
-				{0x50, 0x188, 0x378, 0x60, 0x30, 0x40, 0x8C};
-				uintptr_t JumpAddr = GetDAMAddr(&Attach, ModuleName, JumpModuleOffset, JumpAddrOffset, ArraySize(JumpAddrOffset));
+				{0xA0, 0xCA0, 0x68, 0xC0, 0x18, 0x98, 0x88};
+				uintptr_t JumpAddr = GetDAMAddr(&Attach, "mono-2.0-bdwgc.dll", JumpModuleOffset, JumpAddrOffset, ArraySize(JumpAddrOffset));
 				
 				uint32 Value = 0;
 				uint32 Jumps = 0;
@@ -221,14 +222,14 @@ int WinMain(HINSTANCE hInstance,
 			if(CheatCB[CHECKBOX_GOD_MODE].Active)
 			{
 				uint32 ModuleOffset = 0x00491DE8;
-				uint32 AddrOffset[] = {0x490, 0x1B8, 0x60, 0x60, 0x68, 0xA8, 0x68};
+				uint32 AddrOffset[] = {0xA0, 0xCA0, 0x68, 0xA8, 0x30, 0xB0, 0x68};
 				
 				uintptr_t HPAddr = GetDAMAddr(&Attach, "mono-2.0-bdwgc.dll", ModuleOffset, AddrOffset, ArraySize(AddrOffset));
 
 				real32 Value = 9999;
 				WriteProcessMemory(Attach.Process, (void*)HPAddr, &Value, sizeof(Value), 0);			   
 			}
-			
+#if 0
 			if(CheatCB[CHECKBOX_SKIP_TP].Active)
 			{
 				uint32 ModuleOffset = 0x494A10;
@@ -239,14 +240,14 @@ int WinMain(HINSTANCE hInstance,
 				real32 Value = 1;
 				WriteProcessMemory(Attach.Process, (void*)ChargeAddr, &Value, sizeof(Value), 0);
 			}
-			
+#endif		
 			if(CheatCB[CHECKBOX_NO_TP_CHARGE].Active && !CheatCB[CHECKBOX_SKIP_TP].Active)
 			{
 				if(FreezeTPChargeTimer.Complete)
 				{
 					StartTimer(&FreezeTPChargeTimer);
-					uint32 ModuleOffset = 0x494A10;
-					uint32 AddrOffset[] = {0x18, 0x48, 0x28, 0x70, 0x48, 0x78, 0x94};
+					uint32 ModuleOffset = 0x491DE8;
+					uint32 AddrOffset[] = {0xA0, 0xCA0, 0x50, 0xC0, 0x50, 0x18, 0x28, 0x94};
 					
 					uintptr_t ChargeAddr = GetDAMAddr(&Attach, "mono-2.0-bdwgc.dll", ModuleOffset, AddrOffset, ArraySize(AddrOffset));
 
@@ -255,8 +256,8 @@ int WinMain(HINSTANCE hInstance,
 				}
 			}
 			
-			uint32 CoordModuleOffset = 0x491DE8;
-			uint32 CoordAddrOffset[] = {0x490, 0x1B8, 0x60, 0x30, 0x40, 0x30, 0x258};
+			uint32 CoordModuleOffset = 0x1563A28;
+			uint32 CoordAddrOffset[] = {0x8, 0x10, 0x30, 0x28, 0x28, 0x30, 0x258};
 			
 			uintptr_t YCoordAddr = GetDAMAddr(&Attach, ModuleName, CoordModuleOffset, CoordAddrOffset, ArraySize(CoordAddrOffset));
 			uintptr_t XCoordAddr = YCoordAddr - 0x4; 
@@ -291,7 +292,11 @@ int WinMain(HINSTANCE hInstance,
 				for(int i = 0; i < CHEAT_BUTTON_MAX; ++i)
 				{
 					char Buffer[100] = {};
-					sprintf(Buffer, "%d", CheatValue[i]);
+					if(i == CHEAT_BUTTON_EXP)
+						stbsp_sprintf(Buffer, "OUTDATED");
+					else
+						stbsp_sprintf(Buffer, "%d", CheatValue[i]);
+					
 					LoadText(Graphics.Renderer, LabelsFont, &ValueText[i], Buffer, {255, 0, 0, 255});
 							 
 					rect32 TextRect = ButtonLabels[i].Rect;
